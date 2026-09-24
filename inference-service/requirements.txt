@@ -1,0 +1,12 @@
+fastapi==0.115.6
+uvicorn==0.34.0
+python-multipart==0.0.20
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+ultralytics==8.4.118
+opencv-python-headless>=4.10,<5
+numpy
+pillow
+matplotlib
+ultralytics-thop
