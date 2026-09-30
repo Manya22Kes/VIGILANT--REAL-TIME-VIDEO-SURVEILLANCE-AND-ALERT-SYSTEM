@@ -10,9 +10,12 @@ import { CameraStatusProvider } from "./lib/cameraStatus";
 import { AuthProvider, useAuth } from "./lib/authContext";
 import { SoundStatusProvider } from "./lib/soundStatus";
 
+// Set VITE_DEMO_MODE=true at build time to skip the login screen (frontend-only demos).
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
+
 function AppShell() {
   const { token } = useAuth();
-  if (!token) return <Login />;
+  if (!token && !DEMO_MODE) return <Login />;
 
   return (
     <CameraStatusProvider>
