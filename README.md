@@ -179,23 +179,22 @@ The SMS variables (`TEXTBEE_API_KEY`, `SMS_RECIPIENTS` and friends) are listed i
 
 ## 🎚️ Live settings, crowd alerts and CSV export
 
-- **Live settings.** The Live Feed tab has a settings panel with sliders for person confidence, crowd counting confidence, weapon confidence, alert cooldown and crowd threshold, plus the detection size. Changes apply on the next frame, are saved in the database, and survive a restart. `GET /api/settings` is public; `POST /api/settings` needs the admin token (like the zone). The env values above are only the starting defaults.
-- **Crowd alerts.** When `crowdThreshold` or more people are in view (anywhere in the frame, counted at the lower crowd confidence) for 2 frames in a row, a `crowd` alert is logged: MEDIUM at the threshold, HIGH at double. Weaker detections that only count towards the crowd are drawn faint on the feed.
-- **Dense crowd counting.** A normal pass misses many people in packed scenes. When it already finds 8 or more, the service re-scans the frame in overlapping tiles (boxes cut off by tile borders and oversized "group boxes" are removed) and merges the results. On a test photo of about 50 people this found 14 instead of 10 (22 with the crowd confidence slider at 0.2), and it changed nothing on two normal-density photos. It cannot see people whose bodies are hidden (only heads visible), and those frames are slower. Switch it off with the checkbox if needed. The inference service reads `DENSE_TRIGGER` (default `8`) to decide how many people a frame needs before the tiled pass runs, so small groups never pay for it.
-- **Faster capture.** Frames are sent one at a time as soon as the previous result returns, instead of on a fixed 1.2 s timer, so the feed runs as fast as the model allows.
-- **CSV export.** The Alerts History tab has an "export csv" button (`GET /api/alerts/export.csv`) with every alert: id, timestamp, type, severity, confidence, detections, time in zone, snapshot path.
-- **Snapshot downloads.** Each alert's snapshot downloads as `vigilant-alert-<id>.<ext>`, where the extension comes from the image's real format (detected from its first bytes) rather than being assumed to be `.jpg`. If a downloaded jpg will not open on Windows with "the application cannot be started", the cause is a broken default photo app on that PC, not the file; right-click it and use "Open with" another viewer or a browser.
-- **Un-mirrored camera.** The live view is flipped back so left and right match real life, in both the preview and the frame sent for detection. Use the "flip camera" button in camera mode to turn it off.
+- **Live settings.** The Live Feed tab has sliders for person, crowd-counting and weapon confidence, alert cooldown and crowd threshold, plus the detection size. Changes apply on the next frame and are saved in the database across restarts. `GET /api/settings` is public; `POST /api/settings` needs the admin token. The env values above are only the starting defaults.
+- **Crowd alerts.** When `crowdThreshold` or more people are in view (anywhere in the frame, counted at the lower crowd confidence) for 2 frames in a row, a `crowd` alert is logged: MEDIUM at the threshold, HIGH at double. Weaker detections that only count towards the crowd are drawn faint.
+- **Dense crowd counting.** Once a frame already has `DENSE_TRIGGER` people (default `8`), the service re-scans it in overlapping tiles, removes boxes cut by tile borders and oversized "group boxes", and merges the results. On a photo of about 50 people it found 14 instead of 10 (22 with the crowd slider at 0.2) and changed nothing on two normal-density photos. It cannot see people whose bodies are hidden (only heads visible) and those frames are slower; switch it off with the checkbox.
+- **Faster capture.** Each frame is sent as soon as the previous result returns, instead of on a fixed 1.2 s timer.
+- **CSV export.** The Alerts History tab's "export csv" button (`GET /api/alerts/export.csv`) exports every alert: id, timestamp, type, severity, confidence, detections, time in zone, snapshot path.
+- **Snapshot downloads.** Snapshots download as `vigilant-alert-<id>.<ext>`, with the extension taken from the image's real format (first bytes), not assumed to be `.jpg`. If a jpg still will not open on Windows ("the application cannot be started"), the default photo app is broken, not the file; use "Open with" another viewer or a browser.
+- **Un-mirrored camera.** Left and right match real life in both the preview and the frame sent for detection. The "flip camera" button in camera mode turns this off.
 
 ## 🔫 Weapon detection
 
-A second, separately trained YOLOv8 model detects weapons. It is **optional**: drop the weights at `inference-service/models/weapon_detection.pt` (or set `WEAPON_MODEL_PATH` / `WEAPON_MODEL_DOWNLOAD_URL`) and it switches on. Without the file, the service runs person detection only and the status bar shows "weapon detection off".
+A second, separately trained YOLOv8 model detects weapons. It is **optional**: put the weights at `inference-service/models/weapon_detection.pt` (or set `WEAPON_MODEL_PATH` / `WEAPON_MODEL_DOWNLOAD_URL`) to switch it on. Without it, only people are detected and the status bar shows "weapon detection off".
 
-- The weapon model has one `weapon` class (guns and knives merged in the training dataset). The class is found by name, so a different class order still works; use `WEAPON_CLASS_NAMES` if your model names it differently.
-- A weapon anywhere in the frame raises a `weapon` alert, always severity HIGH, with its own cooldown. It must appear in `WEAPON_MIN_CONSECUTIVE_FRAMES` consecutive frames first, to cut one-frame false alarms.
-- Person detections still drive the restricted-zone logic exactly as before (`zone_intrusion` alerts).
-- **Blank-camera guard.** The weapon model tends to report one box covering almost the whole frame when the image is blank, white or the camera is covered. A weapon box larger than `WEAPON_MAX_FRAME_FRACTION` of the frame (default `0.8`) is dropped, so a covered webcam no longer raises HIGH weapon alerts. Set it to `1` to turn the guard off.
-- Alerts carry a `type` (`zone_intrusion`, `weapon` or `crowd`). Existing databases are upgraded automatically on startup.
+- The model has one `weapon` class (guns and knives merged). It is found by name, so class order doesn't matter; set `WEAPON_CLASS_NAMES` if yours is named differently.
+- A weapon anywhere in the frame raises a `weapon` alert, always HIGH, with its own cooldown, after it appears in `WEAPON_MIN_CONSECUTIVE_FRAMES` frames in a row (to cut one-frame false alarms).
+- **Blank-camera guard.** On a blank, white or covered camera the model tends to report one box covering almost the whole frame. Weapon boxes larger than `WEAPON_MAX_FRAME_FRACTION` of the frame (default `0.8`) are dropped; set it to `1` to turn the guard off.
+- Person detections still drive the zone logic as before (`zone_intrusion` alerts). Alerts carry a `type` (`zone_intrusion`, `weapon` or `crowd`), and existing databases are upgraded on startup.
 - Training script and dataset layout: see the separate `weapon_training` package.
 
 > [!NOTE]
@@ -245,11 +244,11 @@ Kept deliberately minimal — this is a single-admin tool, not a multi-user syst
 
 ## ⚠️ Known limitations
 
-- Dwell, crowd and weapon streak tracking assume a single camera stream (in-memory state, not per-session). Run one live feed at a time.
+- Dwell, crowd and weapon streak tracking keep in-memory state for a single camera stream, so run one live feed at a time.
 - Snapshots are kept forever; there is no automatic cleanup.
-- Crowd counts are a lower bound in packed scenes. The person model was fine-tuned on a small everyday-scenes dataset, not crowd data, so it misses people whose bodies are hidden (for example only heads visible in back rows). Dense crowd counting roughly doubles what it finds, but a photo of about 50 people still gave only 14 to 22. Accuracy on this project's own footage has not been measured yet.
-- Weapon detection accuracy depends entirely on the weapon model's training data (a public CCTV dataset, one merged `weapon` class). It has not yet been measured on this project's own camera footage; expect false positives and misses.
-- SMS needs an Android phone that stays online with the TextBee app, and the free plan caps it at 50 texts a day and 300 a month. TextBee accepting a message does not guarantee delivery. The daily SMS counter resets when the backend restarts.
-- Inference runs on the CPU unless a CUDA build of PyTorch is installed, so speed depends on the machine and the detection size setting.
-- The zone editor and upload flow are covered by manual testing but not an automated browser test suite yet.
-- Frontend bundle is ~1.2MB (mostly three.js) — fine for the current scale, would want code-splitting before shipping this more broadly.
+- Crowd counts are a lower bound in packed scenes: the person model was fine-tuned on everyday scenes, not crowds, and misses people whose bodies are hidden. Dense counting roughly doubles what it finds, but a photo of about 50 people still gave only 14 to 22. Accuracy on this project's own footage is not measured yet.
+- Weapon accuracy depends on the weapon model's training data (a public CCTV dataset, one merged `weapon` class) and is not yet measured on this project's footage; expect false positives and misses.
+- SMS needs an Android phone online with the TextBee app; the free plan allows 50 texts a day and 300 a month, and an accepted message is not guaranteed to be delivered. The daily SMS counter resets when the backend restarts.
+- Inference runs on the CPU unless a CUDA build of PyTorch is installed, so speed depends on the machine and detection size.
+- The zone editor and upload flow are manually tested, with no automated browser tests yet.
+- The frontend bundle is ~1.2MB (mostly three.js); it would want code-splitting before wider use.
