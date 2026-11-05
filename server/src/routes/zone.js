@@ -10,12 +10,16 @@ zoneRouter.get("/", (req, res) => {
 });
 
 zoneRouter.post("/", requireAuth, (req, res) => {
-  const { zone } = req.body;
+  const { zone } = req.body ?? {};
 
   if (!Array.isArray(zone) || zone.length < 3) {
     return res.status(400).json({ error: "zone must be an array of at least 3 {x, y} points" });
   }
   for (const point of zone) {
+    // A null / non-object entry would make the destructuring below throw (a 500).
+    if (point === null || typeof point !== "object") {
+      return res.status(400).json({ error: "each point must be an object with numeric x and y" });
+    }
     const { x, y } = point;
     if (typeof x !== "number" || typeof y !== "number" || x < 0 || x > 1 || y < 0 || y > 1) {
       return res.status(400).json({

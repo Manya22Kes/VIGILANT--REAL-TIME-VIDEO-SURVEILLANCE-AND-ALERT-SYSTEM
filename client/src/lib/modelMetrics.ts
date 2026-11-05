@@ -7,6 +7,17 @@ export const MODEL_METRICS = {
   recall: "71.36%",
 };
 
+// Custom evaluation from the ML pipeline's metrics file (yolov8s_50epochs_enhanced_metrics.json).
+// Image counts are deliberately not stated here until the exact dataset split is confirmed.
 export const MODEL_VALIDATION_NOTE =
-  "Validation set (1,206 images): 88.18% precision, 64.06% recall, 82.31% average IoU. " +
-  "Test set (750 images): 91.44% precision, 67.28% recall, 82.98% average IoU.";
+  "Custom evaluation, validation split: 88.18% precision, 64.06% recall, 82.31% average IoU. " +
+  "Held-out test split: 91.44% precision, 67.28% recall, 82.98% average IoU.";
+
+// Baseline: the generic pretrained YOLOv8n (no fine-tuning), evaluated by the ML pipeline
+// (pretrained_yolov8n_metrics.json). Note it is a smaller model (n) than the trained one (s).
+export const BASELINE_METRICS = {
+  map50: "72.80%",
+  map50_95: "50.40%",
+  precision: "76.70%",
+  recall: "65.70%",
+};

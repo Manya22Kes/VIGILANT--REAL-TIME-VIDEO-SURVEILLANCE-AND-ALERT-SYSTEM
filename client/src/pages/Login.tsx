@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { api } from "../lib/api";
+import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/authContext";
 
 export default function Login() {
@@ -15,8 +15,10 @@ export default function Login() {
     try {
       const { token } = await api.login(password);
       login(token);
-    } catch {
-      setError("incorrect password");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) setError("incorrect password");
+      else if (err instanceof ApiError && err.status === 429) setError("too many attempts - wait a few minutes and try again");
+      else setError("could not reach the backend - is it running?");
     } finally {
       setLoading(false);
     }

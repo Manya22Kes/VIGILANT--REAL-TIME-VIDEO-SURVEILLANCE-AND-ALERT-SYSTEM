@@ -54,6 +54,11 @@ export default function StatusBar() {
           ? "model idle"
           : "fallback model";
 
+  const weaponState = status?.inference.weapon_model;
+  const weaponReady = weaponState === "loaded" || weaponState === "available" || weaponState === "not_loaded_yet";
+  const weaponColor = !status?.inference.reachable ? "#5c6e74" : weaponReady ? "#4de8f5" : "#f2b94d";
+  const weaponLabel = !status?.inference.reachable ? "weapon model n/a" : weaponReady ? "weapon detection on" : "weapon detection off";
+
   const camColor = cameraState === "active" ? "#4de8f5" : cameraState === "error" ? "#ff6b5e" : "#5c6e74";
   const camLabel = cameraState === "active" ? "camera active" : cameraState === "error" ? "camera error" : "camera inactive";
 
@@ -65,6 +70,7 @@ export default function StatusBar() {
       </span>
       <span className="flex items-center"><Dot color={backendColor} />{backendLabel}</span>
       <span className="flex items-center"><Dot color={modelColor} />{modelLabel}</span>
+      <span className="flex items-center"><Dot color={weaponColor} />{weaponLabel}</span>
       <span className="flex items-center"><Dot color={camColor} />{camLabel}</span>
       <button
         onClick={toggleMuted}

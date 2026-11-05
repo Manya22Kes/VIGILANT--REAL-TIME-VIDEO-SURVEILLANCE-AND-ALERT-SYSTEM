@@ -9,5 +9,9 @@ statsRouter.get("/", (req, res) => {
   for (const row of statements.countBySeverity.all()) {
     bySeverity[row.severity] = row.count;
   }
-  res.json({ total, bySeverity });
+  const byType = { zone_intrusion: 0, weapon: 0, crowd: 0 };
+  for (const row of statements.countByType.all()) {
+    byType[row.type] = row.count;
+  }
+  res.json({ total, bySeverity, byType });
 });

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type Stats } from "../lib/api";
-import { MODEL_METRICS, MODEL_VALIDATION_NOTE } from "../lib/modelMetrics";
+import { MODEL_METRICS, MODEL_VALIDATION_NOTE, BASELINE_METRICS } from "../lib/modelMetrics";
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
@@ -50,7 +50,18 @@ export default function ModelStats() {
           <StatCard label="precision" value={MODEL_METRICS.precision} />
           <StatCard label="recall" value={MODEL_METRICS.recall} />
         </div>
-        <div className="text-xs text-[#4a5a63] max-w-md">{MODEL_VALIDATION_NOTE}</div>
+        <div className="text-xs text-[#4a5a63] max-w-md mb-12">{MODEL_VALIDATION_NOTE}</div>
+
+        <div className="text-sm tracking-wide text-[#4de8f5] mb-4">baseline — generic pretrained yolov8n, no fine-tuning</div>
+        <div className="grid grid-cols-4 gap-4 mb-3" style={{ maxWidth: 760 }}>
+          <StatCard label="mAP50" value={BASELINE_METRICS.map50} />
+          <StatCard label="mAP50-95" value={BASELINE_METRICS.map50_95} />
+          <StatCard label="precision" value={BASELINE_METRICS.precision} />
+          <StatCard label="recall" value={BASELINE_METRICS.recall} />
+        </div>
+        <div className="text-xs text-[#4a5a63] max-w-md">
+          Evaluated by the same ML pipeline. The baseline is a smaller model (n) than the trained one (s), so this compares the full recipe, not fine-tuning alone.
+        </div>
       </div>
     </div>
   );
